@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ważywniak</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f8f8f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #cash-register {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            max-width: 400px;
+            width: 100%;
+            text-align: center;
+        }
+
+        h2,
+        h3 {
+            color: #333;
+        }
+
+        #product-list,
+        #cart-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .product-item,
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            padding: 8px;
+            background-color: #f2f2f2;
+            border-radius: 4px;
+        }
+
+        button {
+            padding: 8px;
+            cursor: pointer;
+            background-color: #4caf50;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        #total {
+            font-weight: bold;
+            margin-top: 10px;
+            color: #333;
+        }
+
+        #cashInput {
+            margin-top: 10px;
+            padding: 8px;
+        }
+
+        .category {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 10px;
+        }
+
+        .category img {
+            width: 100px; /* Dostosuj rozmiar obrazu */
+            height: 100px;
+            object-fit: cover; /* Zapewnia zachowanie proporcji obrazu */
+            border-radius: 50%; /* Zaokrąglony kształt obrazu */
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="cash-register">
+        
+        
+
+        <h2>Kasa Fiskalna</h2>
+        
+        
+        <ul id="product-list"></ul>
+            <li class="product-item">
+                <span>Chleb - $2.50</span>
+                <button onclick="addItem('Chleb', 2.50)">Dodaj</button>
+            </li>
+            <li class="product-item">
+                <span>Mleko - $3.00</span>
+                <button onclick="addItem('Mleko', 3.00)">Dodaj</button>
+            </li>
+            <li class="product-item">
+                <span>Jajka - $5.50</span>
+                <button onclick="addItem('Jajka', 5.50)">Dodaj</button>
+            </li>
+            <li class="product-item">
+                <span>Szynka - $8.00</span>
+                <button onclick="addItem('Szynka', 8.00)">Dodaj</button>
+            </li>
+            <li class="product-item">
+                <span>Jogurt - $2.80</span>
+                <button onclick="addItem('Jogurt', 2.80)">Dodaj</button>
+            </li>
+        </ul>
+             
+        <hr>
+        <h3>Koszyk</h3>
+        <ul id="cart-list"></ul>
+        <div id="total">Suma: $0.00</div>
+        <div id="cashInput">
+            <label for="cash">Ilość gotówki: </label>
+            <input type="number" id="cash" min="0" step="0.01">
+        </div>
+        <div id="paymentButtons">
+            <button onclick="processPayment('karta')">Płatność kartą</button>
+            <button onclick="processCashPayment()">Płatność gotówką</button>
+        </div>
+        <div id="receipts-container"></div>
+    </div>
+
+    <div id="admin-panel" style="display: yes;">
+        <h2>Logowanie</h2>
+        <div>
+            <label for="adminUsername">Użytkownik:</label>
+            <input type="text" id="adminUsername">
+        </div>
+        <div>
+            <label for="adminPassword">Hasło:</label>
+            <input type="password" id="adminPassword">
+        </div>
+        <button onclick="loginAdmin()">Zaloguj</button>
+    </div>
+
+    <div id="admin-stats" style="display: none;">
+        <h3></h3>
+        <div id=></div>
+        <div id=></div>
+        <button onclick="logoutAdmin()">Wyloguj</button>
+        <h3>Zarządzanie Koszykiem</h3>
+        <label for="removeProduct">Usuń produkt z koszyka:</label>
+        <select id="removeProduct" onchange="removeItemFromCart()">
+            <option value="" disabled selected>Wybierz produkt</option>
+        </select>
+        <button onclick="clearCart()">Wyczyść koszyk</button>
+        <h3>Dodaj zniżkę</h3>
+        <label for="discountInput">Zniżka (%): </label>
+        <input type="number" id="discountInput" min="0" max="100" step="1">
+        <button onclick="applyDiscount()">Dodaj zniżkę</button>
+    </div>
+    
+    <div id="cashier-login" style="display: none;">
+        <h2>Logowanie Kasjera</h2>
+        <div>
+            <label for="cashierUsername">Użytkownik:</label>
+            <input type="text" id="cashierUsername">
+        </div>
+        <div>
+            <label for="cashierPassword">Hasło:</label>
+            <input type="password" id="cashierPassword">
+        </div>
+        <button onclick="loginCashier()">Zaloguj</button>
+    </div>
+
+    <script>
+        let cart = [];
+        let total = 0;
+        
+         function addItem(product, price) {
+            const existingItem = cart.find(item => item.product === product);
+            if (existingItem) {
+                existingItem.quantity += 1; // Jeśli produkt już istnieje, zwiększ ilość o 1
+            } else {
+                cart.push({ product, price, quantity: 1 }); // Dodaj nowy produkt z ilością 1
+            }
+            updateCart();
+            calculateTotal();
+        }
+
+        function updateCart() {
+            const cartList = document.getElementById('cart-list');
+            cartList.innerHTML = '';
+
+            cart.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'cart-item';
+                li.textContent = `${item.product} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`;
+                cartList.appendChild(li);
+            });
+        }
+        
+        function calculateTotal() {
+            total = cart.reduce((sum, item) => sum + item.price, 0);
+            document.getElementById('total').textContent = `Suma: $${total.toFixed(2)}`;
+        }
+
+        function processPayment(method) {
+            if (cart.length > 0) {
+                alert(`Dokonano płatności ${method}. Kwota do zapłaty: $${total.toFixed(2)}`);
+                generateReceipt(method);
+                resetCart();
+            } else {
+                alert('Koszyk jest pusty. Dodaj produkty przed płatnością.');
+            }
+        }
+
+        function processCashPayment() {
+            const cashInput = document.getElementById('cash');
+            const cashAmount = parseFloat(cashInput.value);
+            if (!isNaN(cashAmount) && cashAmount >= 0) {
+                if (cashAmount >= total) {
+                    const change = cashAmount - total;
+                    alert(`Dokonano płatności gotówką. Reszta: $${change.toFixed(2)}`);
+                    generateReceipt('gotówką', change.toFixed(2));
+                    resetCart();
+                    updateCashAmount(cashAmount - change);
+                } else {
+                    alert('Podana ilość gotówki jest niewystarczająca.');
+                }
+            } else {
+                alert('Podaj poprawną ilość gotówki.');
+            }
+        }
+
+        function updateCashAmount(amount) {
+            const cashAmountElement = document.getElementById('cashAmount');
+            cashAmountElement.textContent = `Ilość gotówki w kasie: $${amount.toFixed(2)}`;
+        }
+                 
+
+        function generateReceipt(paymentMethod, change = 0) {
+            const currentDate = new Date();
+            const formattedDate = `${currentDate.getDate()}.${currentDate.getMonth() + 1}.${currentDate.getFullYear()}`;
+            const note = 'Miłego dnia!';
+            const tittle = 'Ważywniak';
+
+            const receiptsContainer = document.getElementById('receipts-container');
+            const receiptItems = cart.map(item => `${item.product} - $${item.price.toFixed(2)}`);
+            const receiptTotal = `Suma: $${total.toFixed(2)}`;
+            const receiptDate = `Data: ${formattedDate}`;
+            const receiptMethod = `Forma płatności: ${paymentMethod}`;
+            const receiptNote = `${note}`;
+            const receiptTittle = `${tittle}`;
+            //const receiptChange = `${change}`;....
+            const receiptItem = cart.map(item => `${item.product} x${item.quantity} - $${(item.price * item.quantity).toFixed(2)}`); 
+
+            const receiptContent = [receiptTittle, receiptDate, ...receiptItems, receiptMethod, receiptTotal, receiptNote].join('\n');
+
+            const receiptBlob = new Blob([receiptContent], { type: 'text/plain' });
+            const receiptUrl = URL.createObjectURL(receiptBlob);
+
+            const downloadLink = document.createElement('a');
+            downloadLink.href = receiptUrl
+;
+            downloadLink.download = 'paragon.txt';
+
+            downloadLink.download = 'paragon.txt';
+            downloadLink.textContent = 'Pobierz';
+
+            receiptsContainer.innerHTML = ''; // Clear previous content
+            receiptsContainer.appendChild(downloadLink);
+        }
+        function loginAdmin() {
+            const username = document.getElementById('adminUsername').value;
+            const password = document.getElementById('adminPassword').value;
+
+            // Replace the following with proper authentication and authorization logic
+            if (username === 'admin' && password === 'admin') {
+                showAdminPanel();
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        function showAdminPanel() {
+            document.getElementById('admin-panel').style.display = 'block';
+            updateStatistics();
+        }
+
+        function updateStatistics() {
+            const totalEarnings = document.getElementById('total-earnings');
+            const totalSales = document.getElementById('total-sales');
+
+            // Replace the following with actual data from your server/database
+            const fakeData = {
+                earnings: 500.25,
+                sales: 30
+            };
+
+            totalEarnings.textContent = `Total Earnings: $${fakeData.earnings.toFixed(2)}`;
+            totalSales.textContent = `Total Sales: ${fakeData.sales}`;
+            document.getElementById('admin-stats').style.display = 'block';
+        }
+        function showAdminPanel() {
+            document.getElementById('admin-panel').style.display = 'none';
+            document.getElementById('admin-stats').style.display = 'block';
+            updateStatistics();
+            populateRemoveProductDropdown();
+        }
+
+        function logoutAdmin() {
+            document.getElementById('admin-panel').style.display = 'block';
+            document.getElementById('admin-stats').style.display = 'none';
+        }
+
+        function populateRemoveProductDropdown() {
+            const removeProductDropdown = document.getElementById('removeProduct');
+            removeProductDropdown.innerHTML = '<option value="" disabled selected>Wybierz produkt</option>';
+            
+            cart.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.product;
+                option.textContent = item.product;
+                removeProductDropdown.appendChild(option);
+            });
+        }
+
+        function removeItemFromCart() {
+            const selectedProduct = document.getElementById('removeProduct').value;
+            const index = cart.findIndex(item => item.product === selectedProduct);
+
+            if (index !== -1) {
+                cart.splice(index, 1);
+                updateCart();
+                calculateTotal();
+                populateRemoveProductDropdown();
+            }
+        }
+
+        function clearCart() {
+            cart = [];
+            updateCart();
+            calculateTotal();
+            populateRemoveProductDropdown();
+        }
+
+        function applyDiscount() {
+            const discountInput = document.getElementById('discountInput');
+            const discountPercentage = parseFloat(discountInput.value);
+
+            if (!isNaN(discountPercentage) && discountPercentage >= 0 && discountPercentage <= 100) {
+                const discountFactor = 1 - discountPercentage / 100;
+                cart.forEach(item => {
+                    item.price *= discountFactor;
+                });
+                updateCart();
+                calculateTotal();
+                populateRemoveProductDropdown();
+                alert(`Zniżka w wysokości ${discountPercentage}% została dodana.`);
+            } else {
+                alert('Podaj poprawny procent zniżki (0-100).');
+            }
+        }
+        
+        function loginCashier() {
+            const username = document.getElementById('cashierUsername').value;
+            const password = document.getElementById('cashierPassword').value;
+
+            // Replace the following with proper authentication and authorization logic
+            if (username === '' && password === 'kasjer') {
+                showCashierInterface();
+            } else {
+                alert('Invalid credentials');
+            }
+        }
+
+        function showCashierInterface() {
+            document.getElementById('cashier-login').style.display = 'none';
+            document.getElementById('cash-register').style.display = 'block';
+        }
+    
+    </script>
+
+</body>
+
+</html>
